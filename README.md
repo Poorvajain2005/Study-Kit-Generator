@@ -14,7 +14,7 @@ AI-powered study kit generator that creates flashcards, Cornell notes, mind maps
 ### Prerequisites
 
 - Node.js 18+
-- Supabase account
+- MySQL 8+ (local or remote)
 - Gemini API key (optional, for AI-powered generation)
 
 ### Installation
@@ -30,19 +30,31 @@ cd Study-Kit-Generator
 npm install
 ```
 
-3. Configure Supabase
+3. Configure environment
 
 Create a `.env` file in the root directory:
 
 ```env
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+# Frontend
 GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-3-flash-preview
+
+# Auth API (local MySQL)
+SERVER_PORT=4000
+CLIENT_ORIGIN=http://localhost:5173
+AUTH_COOKIE_SECRET=replace-with-a-long-random-secret
+
+# MySQL
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PASSWORD=your_mysql_password
+MYSQL_DATABASE=study_kit
 ```
 
-Get your credentials from [Supabase Dashboard](https://supabase.com/dashboard) → Project Settings → API
+Then create the users table by running SQL in [migrations/20260224090000_create_mysql_users_table.sql](migrations/20260224090000_create_mysql_users_table.sql).
 
-4. (Optional) Add Gemini API Key
+4. (Optional) Gemini API Key
 
 For AI-powered study kit generation in the frontend, set `GEMINI_API_KEY` in your `.env` file.
 
@@ -66,7 +78,13 @@ Get your Gemini API key from [Google AI Studio](https://makersuite.google.com/ap
 
 Default is `gemini-3-flash-preview` for optimal cost/speed balance.
 
-5. Run the development server
+5. Run backend + frontend
+```bash
+npm run server
+```
+
+In another terminal:
+
 ```bash
 npm run dev
 ```
@@ -75,6 +93,7 @@ npm run dev
 
 - React + TypeScript
 - Vite
-- Supabase
+- Express (local auth API)
+- MySQL
 - Tailwind CSS
 - Lucide Icons

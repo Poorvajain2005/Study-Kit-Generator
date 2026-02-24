@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   BookOpen,
   Sparkles,
@@ -15,11 +15,12 @@ import {
   Send,
   X,
   FileText,
+  LogOut,
 } from 'lucide-react';
 import { Flashcards } from './components/Flashcards';
-import { Mindmap } from './components/Mindmap';
 import { MindmapJSON, MindmapNode } from './components/MindmapJSON';
 import { Summary } from './components/Summary';
+import { AuthPage } from './components/AuthPage';
 import { Flashcard } from './types';
 
 type BuildType = 'flashcards' | 'mindmap' | 'summary';
@@ -67,7 +68,6 @@ function App() {
 
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [mindmap, setMindmap] = useState<MindmapNode | null>(null);
-  const [useMermaidMode, setUseMermaidMode] = useState(false);
   const [summary, setSummary] = useState('');
 
   const [xp, setXp] = useState(0);
@@ -80,6 +80,42 @@ function App() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     { role: 'model', content: 'Hi! Upload PDFs/PPTs and ask anything. I can explain concepts, summarize slides, or quiz you.' },
   ]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
+
+  useEffect(() => {
+    const loadAuthState = async () => {
+      try {
+        const response = await fetch('/api/auth/me', {
+          method: 'GET',
+          credentials: 'include',
+        });
+        setIsAuthenticated(response.ok);
+      } catch {
+        setIsAuthenticated(false);
+      } finally {
+        setAuthChecking(false);
+      }
+    };
+
+    loadAuthState();
+  }, []);
+
+  const handleAuthSuccess = () => {
+    setIsAuthenticated(true);
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } finally {
+      setIsAuthenticated(false);
+      setAuthChecking(false);
+    }
+  };
 
   const getRemainingCooldownSeconds = () => {
     if (!quotaBlockedUntil) return 0;
@@ -330,7 +366,6 @@ Constraints:
         const mindmapData = generated.mindmap as MindmapNode;
         if (mindmapData && typeof mindmapData === 'object' && mindmapData.id && mindmapData.label) {
           setMindmap(mindmapData);
-          setUseMermaidMode(false);
         } else {
           setError('Invalid mindmap format received');
           return;
@@ -440,6 +475,21 @@ Constraints:
     ? 'bg-slate-900/60 border-slate-700/80 text-slate-100 placeholder:text-slate-500'
     : 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400';
 
+  if (authChecking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-100">
+        <div className="inline-flex items-center gap-2 text-sm text-slate-300">
+          <Loader2 size={16} className="animate-spin" />
+          Checking session...
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <AuthPage onAuthSuccess={handleAuthSuccess} />;
+  }
+
   return (
     <div className={`min-h-screen ${pageBg}`}>
       {loading && (
@@ -453,6 +503,14 @@ Constraints:
 
       <div className="mx-auto max-w-7xl px-4 py-8 md:px-6 lg:py-10">
         <div className="relative mb-8 text-center">
+          <button
+            onClick={handleSignOut}
+            className={`absolute left-0 top-0 inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-300 hover:-translate-y-0.5 ${panelTone}`}
+          >
+            <LogOut size={16} />
+            Logout
+          </button>
+
           <button
             onClick={() => setDarkMode(!darkMode)}
             className={`absolute right-0 top-0 rounded-xl p-2.5 transition-all duration-300 hover:-translate-y-0.5 hover:scale-105 ${panelTone}`}
