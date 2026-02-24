@@ -18,10 +18,12 @@ import {
 } from 'lucide-react';
 import { Flashcards } from './components/Flashcards';
 import { Mindmap } from './components/Mindmap';
+import { MindmapJSON, MindmapNode } from './components/MindmapJSON';
+import { Summary } from './components/Summary';
 import { Flashcard } from './types';
 
-type BuildType = 'flashcards' | 'mindmap';
-type OutputTab = 'flashcards' | 'mindmap';
+type BuildType = 'flashcards' | 'mindmap' | 'summary';
+type OutputTab = 'flashcards' | 'mindmap' | 'summary';
 
 type ChatMessage = {
   role: 'user' | 'model';
@@ -64,7 +66,9 @@ function App() {
   const [nextRequestAllowedAt, setNextRequestAllowedAt] = useState<number | null>(null);
 
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
-  const [mindmap, setMindmap] = useState('');
+  const [mindmap, setMindmap] = useState<MindmapNode | null>(null);
+  const [useMermaidMode, setUseMermaidMode] = useState(false);
+  const [summary, setSummary] = useState('');
 
   const [xp, setXp] = useState(0);
   const [streak, setStreak] = useState(0);
@@ -279,15 +283,35 @@ Constraints:
 - Questions should be specific and exam-focused
 - Answers concise and factual
 - No hallucinations`
-          : `You are an AI study assistant. From uploaded PDFs/PPTs, generate a Mermaid mindmap that captures key topics and hierarchy.
-Return ONLY valid JSON in this format:
+          : buildType === 'mindmap'
+            ? `You are an AI study assistant. From uploaded PDFs/PPTs, generate an interactive mindmap in hierarchical JSON format.
+Return ONLY valid JSON:
 {
-  "mindmap": "string"
+  "mindmap": {
+    "id": "root",
+    "label": "Main Topic",
+    "children": [
+      {"id": "unique_id", "label": "Branch Label", "children": [...]}
+    ]
+  }
 }
 Constraints:
-- mindmap must be valid Mermaid mindmap syntax
-- short node labels (1-4 words)
-- no extra text outside JSON`;
+- Root node is the main topic
+- Each node has id (unique string), label (1-4 words), children (optional array)
+- Maximum 3-4 levels deep for visual clarity
+- Use consistent id values (no duplicates)
+- No extra text outside JSON`
+            : `You are an AI study assistant. From uploaded PDFs/PPTs, create a comprehensive but concise summary.
+Return ONLY valid JSON in this format:
+{
+  "summary": "string"
+}
+Constraints:
+- 300-600 words
+- Cover main topics and key points
+- Use clear, organized paragraph structure
+- Highlight important concepts
+- No extra text outside JSON`;
 
       const responseText = await generateWithGemini(
         systemPrompt,
@@ -302,10 +326,21 @@ Constraints:
       if (buildType === 'flashcards') {
         setFlashcards(Array.isArray(generated.flashcards) ? generated.flashcards : []);
         setActiveTab('flashcards');
-      } else {
-        setMindmap(typeof generated.mindmap === 'string' ? generated.mindmap : '');
+      } else if (buildType === 'mindmap') {
+        const mindmapData = generated.mindmap as MindmapNode;
+        if (mindmapData && typeof mindmapData === 'object' && mindmapData.id && mindmapData.label) {
+          setMindmap(mindmapData);
+          setUseMermaidMode(false);
+        } else {
+          setError('Invalid mindmap format received');
+          return;
+        }
         setActiveTab('mindmap');
-        console.warn('MindMap generated');
+        console.warn('MindMap generated (JSON format)');
+      } else {
+        setSummary(typeof generated.summary === 'string' ? generated.summary : '');
+        setActiveTab('summary');
+        console.warn('Summary generated');
       }
 
       clearInterval(progressInterval);
@@ -393,12 +428,6 @@ Constraints:
     a.download = 'flashcards.csv';
     a.click();
     URL.revokeObjectURL(url);
-  };
-
-  const openMindmapInMermaid = () => {
-    if (!mindmap) return;
-    const encoded = btoa(mindmap);
-    window.open(`https://mermaid.live/edit#base64:${encoded}`, '_blank');
   };
 
   const pageBg = darkMode
@@ -521,6 +550,18 @@ Constraints:
                     >
                       Mindmap
                     </button>
+                    <button
+                      onClick={() => setBuildType('summary')}
+                      className={`rounded-xl border px-3 py-2 text-sm font-semibold transition-all ${
+                        buildType === 'summary'
+                          ? 'border-cyan-400/50 bg-cyan-500/20 text-cyan-300'
+                          : darkMode
+                            ? 'border-slate-700/70 bg-slate-900/40 text-slate-300 hover:bg-slate-800/60'
+                            : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      Summary
+                    </button>
                   </div>
                 </div>
 
@@ -560,9 +601,9 @@ Constraints:
           </div>
 
           <div className="lg:col-span-2">
-            {flashcards.length > 0 || mindmap ? (
+            {flashcards.length > 0 || mindmap || summary ? (
               <div className={`overflow-hidden rounded-2xl transition-all duration-300 ${panelTone} card-shadow`}>
-                <div className={`grid grid-cols-2 gap-2 border-b p-2 ${darkMode ? 'border-slate-700/60 bg-slate-900/30' : 'border-slate-200 bg-slate-100/60'}`}>
+                <div className={`grid grid-cols-3 gap-2 border-b p-2 ${darkMode ? 'border-slate-700/60 bg-slate-900/30' : 'border-slate-200 bg-slate-100/60'}`}>
                   <button
                     onClick={() => setActiveTab('flashcards')}
                     className={`flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-300 md:text-base ${
@@ -589,29 +630,38 @@ Constraints:
                     <Brain size={18} />
                     Mindmap
                   </button>
+                  <button
+                    onClick={() => setActiveTab('summary')}
+                    className={`flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-300 md:text-base ${
+                      activeTab === 'summary'
+                        ? 'bg-gradient-to-r from-cyan-500/20 to-violet-500/20 text-cyan-300 ring-1 ring-cyan-300/40'
+                        : darkMode
+                          ? 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
+                          : 'text-slate-600 hover:bg-white hover:text-slate-900'
+                    }`}
+                  >
+                    <FileText size={18} />
+                    Summary
+                  </button>
                 </div>
 
                 <div className="min-h-[400px] p-6">
                   {activeTab === 'flashcards' && <Flashcards flashcards={flashcards} darkMode={darkMode} />}
-                  {activeTab === 'mindmap' && <Mindmap mindmap={mindmap} darkMode={darkMode} />}
+                  {activeTab === 'mindmap' && mindmap && <MindmapJSON data={mindmap} darkMode={darkMode} />}
+                  {activeTab === 'summary' && <Summary content={summary} darkMode={darkMode} />}
                 </div>
 
                 <div className={`border-t p-4 ${darkMode ? 'border-slate-700/60 bg-slate-900/30' : 'border-slate-200 bg-slate-100/60'}`}>
                   <div className="flex justify-end gap-3">
-                    <button
-                      onClick={exportToCsv}
-                      className="flex items-center gap-2 rounded-xl border border-emerald-400/50 bg-gradient-to-r from-emerald-500/15 to-teal-500/15 px-4 py-2.5 font-medium text-emerald-300 transition-all duration-300 hover:-translate-y-0.5"
-                    >
-                      <Download size={16} />
-                      Export CSV
-                    </button>
-                    <button
-                      onClick={openMindmapInMermaid}
-                      className="flex items-center gap-2 rounded-xl border border-cyan-400/50 bg-gradient-to-r from-cyan-500/15 to-violet-500/15 px-4 py-2.5 font-medium text-cyan-300 transition-all duration-300 hover:-translate-y-0.5"
-                    >
-                      <Brain size={16} />
-                      Open in Mermaid
-                    </button>
+                    {activeTab === 'flashcards' && (
+                      <button
+                        onClick={exportToCsv}
+                        className="flex items-center gap-2 rounded-xl border border-emerald-400/50 bg-gradient-to-r from-emerald-500/15 to-teal-500/15 px-4 py-2.5 font-medium text-emerald-300 transition-all duration-300 hover:-translate-y-0.5"
+                      >
+                        <Download size={16} />
+                        Export CSV
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
