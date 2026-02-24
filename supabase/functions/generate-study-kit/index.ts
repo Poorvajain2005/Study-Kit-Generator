@@ -11,73 +11,54 @@ interface RequestBody {
   title?: string;
 }
 
-function generateCornellNotes(transcript: string) {
-  const sentences = transcript.split(/[.!?]+/).filter(s => s.trim().length > 0);
-  const keyPoints = [];
+const SYSTEM_PROMPT = `You are an AI assistant that transforms lecture transcripts into a complete "Study Kit" for active revision.
+Given the input lecture text, perform the following tasks:
 
-  for (let i = 0; i < Math.min(5, Math.floor(sentences.length / 2)); i++) {
-    const point = sentences[i * 2]?.trim();
-    const detail = sentences[i * 2 + 1]?.trim() || sentences[i * 2]?.trim();
-    if (point) {
-      keyPoints.push({
-        point: point.substring(0, 50) + (point.length > 50 ? '...' : ''),
-        details: detail.substring(0, 200)
-      });
-    }
+1. Summarizer: Generate structured notes using the Cornell Method with Key Points, Supporting Details, and a Summary.
+2. Flashcard Engine: Extract atomic facts as Question/Answer pairs. Do not invent facts.
+3. Visual Mapper: Output valid Mermaid.js mindmap code with concise node labels (1-3 words).
+4. Contextual Bot: Chunk text into ~500 token segments with chunk_id and content.
+
+Constraints:
+- Never hallucinate or guess missing information.
+- Keep outputs clean, structured, and ready for direct use.
+
+Respond with valid JSON in this exact format:
+{
+  "cornell_notes": {"keyPoints": [{"point": "string", "details": "string"}], "summary": "string"},
+  "flashcards": [{"question": "string", "answer": "string"}],
+  "mindmap": "string",
+  "chunks": [{"chunk_id": number, "content": "string"}]
+}`;
+
+async function generateWithAI(transcript: string) {
+  const apiKey = Deno.env.get('GEMINI_API_KEY');
+  
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY not configured');
   }
 
-  return {
-    keyPoints,
-    summary: transcript.substring(0, 300) + (transcript.length > 300 ? '...' : '')
-  };
-}
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      contents: [{
+        parts: [{
+          text: `${SYSTEM_PROMPT}\n\nInput Lecture: ${transcript}`
+        }]
+      }]
+    }),
+  });
 
-function generateFlashcards(transcript: string) {
-  const sentences = transcript.split(/[.!?]+/).filter(s => s.trim().length > 0);
-  const flashcards = [];
-
-  for (let i = 0; i < Math.min(10, sentences.length); i++) {
-    const sentence = sentences[i]?.trim();
-    if (sentence && sentence.length > 20) {
-      const words = sentence.split(' ');
-      const question = `What is ${words.slice(0, 5).join(' ')}?`;
-      const answer = sentence;
-      flashcards.push({ question, answer });
-    }
+  if (!response.ok) {
+    throw new Error('AI generation failed');
   }
 
-  return flashcards;
-}
-
-function generateMindmap(transcript: string) {
-  const sentences = transcript.split(/[.!?]+/).filter(s => s.trim().length > 0);
-  let mindmap = 'mindmap\n  root((Lecture))\n';
-
-  for (let i = 0; i < Math.min(4, sentences.length); i++) {
-    const words = sentences[i]?.trim().split(' ').slice(0, 3).join(' ');
-    if (words) {
-      mindmap += `    ${words}\n`;
-    }
-  }
-
-  return mindmap;
-}
-
-function generateChunks(transcript: string) {
-  const chunkSize = 500;
-  const chunks = [];
-  const words = transcript.split(' ');
-
-  let chunkId = 1;
-  for (let i = 0; i < words.length; i += chunkSize) {
-    const chunk = words.slice(i, i + chunkSize).join(' ');
-    chunks.push({
-      chunk_id: chunkId++,
-      content: chunk
-    });
-  }
-
-  return chunks;
+  const data = await response.json();
+  const text = data.candidates[0].content.parts[0].text;
+  return JSON.parse(text);
 }
 
 Deno.serve(async (req: Request) => {
@@ -104,17 +85,11 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const cornellNotes = generateCornellNotes(transcript);
-    const flashcards = generateFlashcards(transcript);
-    const mindmap = generateMindmap(transcript);
-    const chunks = generateChunks(transcript);
+    const generated = await generateWithAI(transcript);
 
     const data = {
       title: title || 'Untitled Lecture',
-      cornell_notes: cornellNotes,
-      flashcards,
-      mindmap,
-      chunks,
+      ...generated,
     };
 
     return new Response(

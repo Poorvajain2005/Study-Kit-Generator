@@ -15,6 +15,7 @@ AI-powered study kit generator that creates flashcards, Cornell notes, mind maps
 
 - Node.js 18+
 - Supabase account
+- OpenAI API key (optional, for AI-powered generation)
 
 ### Installation
 
@@ -40,7 +41,17 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 Get your credentials from [Supabase Dashboard](https://supabase.com/dashboard) → Project Settings → API
 
-4. Run the development server
+4. (Optional) Add Gemini API Key
+
+For AI-powered study kit generation, add to your Supabase Edge Function secrets:
+
+```bash
+supabase secrets set GEMINI_API_KEY=your_gemini_api_key
+```
+
+Get your Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+
+5. Run the development server
 ```bash
 npm run dev
 ```
