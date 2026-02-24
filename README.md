@@ -15,7 +15,7 @@ AI-powered study kit generator that creates flashcards, Cornell notes, mind maps
 
 - Node.js 18+
 - Supabase account
-- OpenAI API key (optional, for AI-powered generation)
+- Gemini API key (optional, for AI-powered generation)
 
 ### Installation
 
@@ -37,19 +37,34 @@ Create a `.env` file in the root directory:
 ```env
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+GEMINI_API_KEY=your_gemini_api_key
 ```
 
 Get your credentials from [Supabase Dashboard](https://supabase.com/dashboard) → Project Settings → API
 
 4. (Optional) Add Gemini API Key
 
-For AI-powered study kit generation, add to your Supabase Edge Function secrets:
+For AI-powered study kit generation in the frontend, set `GEMINI_API_KEY` in your `.env` file.
 
-```bash
-supabase secrets set GEMINI_API_KEY=your_gemini_api_key
+```env
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-3-flash-preview
 ```
 
 Get your Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+
+### Supported Gemini Models
+
+**Gemini 3.x Series (Latest - Recommended)**
+- `gemini-3-flash-preview`: Fast inference, lower cost, ideal for high-volume flashcard/mindmap generation
+- `gemini-3-pro-preview`: Advanced reasoning, complex task handling, best accuracy
+- `gemini-3.1-pro-preview`: Flagship model, 1M token context window, highest capability
+
+**Gemini 2.5 Series (Stable)**
+- `gemini-2.5-flash`: Fast, budget-friendly alternative
+- `gemini-2.5-pro`: High-capability for complex tasks
+
+Default is `gemini-3-flash-preview` for optimal cost/speed balance.
 
 5. Run the development server
 ```bash
