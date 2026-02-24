@@ -3,9 +3,10 @@ import { FileDown, Copy } from 'lucide-react';
 
 interface Props {
   mindmap: string;
+  darkMode: boolean;
 }
 
-export function Mindmap({ mindmap }: Props) {
+export function Mindmap({ mindmap, darkMode }: Props) {
   const mermaidRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,21 +37,29 @@ export function Mindmap({ mindmap }: Props) {
     URL.revokeObjectURL(url);
   };
 
+  const cardTone = darkMode
+    ? 'bg-slate-900/40 border-slate-700/70 text-slate-100'
+    : 'bg-white/90 border-slate-200 text-slate-900';
+
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-gray-900">Visual Mindmap</h2>
+    <div className={`rounded-2xl border p-6 ${cardTone}`}>
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className={`text-xl font-semibold ${darkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>Visual Mindmap</h2>
         <div className="flex gap-2">
           <button
             onClick={handleCopy}
-            className="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+            className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-all duration-300 hover:-translate-y-0.5 ${
+              darkMode
+                ? 'border-slate-700 bg-slate-800/80 text-slate-200 hover:bg-slate-700/80'
+                : 'border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }`}
           >
             <Copy size={16} />
             Copy Code
           </button>
           <button
             onClick={handleExport}
-            className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+            className="flex items-center gap-2 rounded-xl border border-cyan-400/40 bg-cyan-500/15 px-3 py-2 text-sm font-medium text-cyan-300 transition-all duration-300 hover:-translate-y-0.5"
           >
             <FileDown size={16} />
             Export
@@ -60,21 +69,25 @@ export function Mindmap({ mindmap }: Props) {
 
       {mindmap ? (
         <div className="space-y-4">
-          <div className="bg-gray-50 rounded-lg p-4 overflow-auto">
+          <div className={`scroll-thin overflow-auto rounded-xl border p-4 ${
+            darkMode
+              ? 'border-slate-700/80 bg-slate-950/50'
+              : 'border-slate-200 bg-slate-50'
+          }`}>
             <div ref={mermaidRef} className="flex justify-center" />
           </div>
 
           <details className="text-sm">
-            <summary className="cursor-pointer text-gray-600 hover:text-gray-900 font-medium">
+            <summary className={`cursor-pointer font-medium ${darkMode ? 'text-slate-300 hover:text-slate-100' : 'text-slate-600 hover:text-slate-900'}`}>
               View Mermaid Code
             </summary>
-            <pre className="mt-2 bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-xs">
+            <pre className="scroll-thin mt-2 overflow-x-auto rounded-xl bg-slate-950 p-4 text-xs text-slate-200">
               {mindmap}
             </pre>
           </details>
         </div>
       ) : (
-        <p className="text-gray-500 text-center py-8">No mindmap generated yet</p>
+        <p className={`py-8 text-center ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>No mindmap generated yet</p>
       )}
     </div>
   );

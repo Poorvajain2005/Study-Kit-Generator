@@ -4,9 +4,10 @@ import { Flashcard } from '../types';
 
 interface Props {
   flashcards: Flashcard[];
+  darkMode: boolean;
 }
 
-export function Flashcards({ flashcards }: Props) {
+export function Flashcards({ flashcards, darkMode }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
 
@@ -37,24 +38,27 @@ export function Flashcards({ flashcards }: Props) {
 
   if (!flashcards || flashcards.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Flashcards</h2>
-        <p className="text-gray-500 text-center py-8">No flashcards generated yet</p>
+      <div className={`rounded-2xl border p-6 ${darkMode ? 'bg-slate-900/40 border-slate-700/70' : 'bg-white/90 border-slate-200'}`}>
+        <h2 className={`mb-4 text-xl font-semibold ${darkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>Flashcards</h2>
+        <p className={`py-8 text-center ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>No flashcards generated yet</p>
       </div>
     );
   }
 
   const currentCard = flashcards[currentIndex];
+  const cardTone = darkMode
+    ? 'bg-slate-900/40 border-slate-700/70 text-slate-100'
+    : 'bg-white/90 border-slate-200 text-slate-900';
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-gray-900">
+    <div className={`rounded-2xl border p-6 ${cardTone}`}>
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className={`text-xl font-semibold ${darkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>
           Flashcards ({currentIndex + 1}/{flashcards.length})
         </h2>
         <button
           onClick={handleExport}
-          className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+          className="flex items-center gap-2 rounded-xl border border-cyan-400/40 bg-cyan-500/15 px-3 py-2 text-sm font-medium text-cyan-300 transition-all duration-300 hover:-translate-y-0.5"
         >
           <FileDown size={16} />
           Export CSV
@@ -64,18 +68,22 @@ export function Flashcards({ flashcards }: Props) {
       <div className="space-y-4">
         <div
           onClick={() => setFlipped(!flipped)}
-          className="min-h-[200px] bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 cursor-pointer hover:shadow-md transition-shadow flex items-center justify-center"
+          className={`flex min-h-[220px] cursor-pointer items-center justify-center rounded-2xl border p-6 transition-all duration-300 hover:-translate-y-0.5 ${
+            darkMode
+              ? 'border-slate-700/80 bg-gradient-to-br from-slate-900/70 to-indigo-950/40'
+              : 'border-slate-200 bg-gradient-to-br from-cyan-50 to-indigo-50'
+          }`}
         >
           <div className="text-center">
             {!flipped ? (
               <>
-                <p className="text-xs text-gray-500 mb-2">QUESTION</p>
-                <p className="text-lg text-gray-900">{currentCard.question}</p>
+                <p className={`mb-2 text-xs tracking-[0.18em] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>QUESTION</p>
+                <p className="text-lg font-medium leading-relaxed">{currentCard.question}</p>
               </>
             ) : (
               <>
-                <p className="text-xs text-gray-500 mb-2">ANSWER</p>
-                <p className="text-lg text-gray-900">{currentCard.answer}</p>
+                <p className={`mb-2 text-xs tracking-[0.18em] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>ANSWER</p>
+                <p className="text-lg font-medium leading-relaxed">{currentCard.answer}</p>
               </>
             )}
           </div>
@@ -85,7 +93,11 @@ export function Flashcards({ flashcards }: Props) {
           <button
             onClick={prevCard}
             disabled={flashcards.length <= 1}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`flex items-center gap-2 rounded-xl border px-4 py-2 transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50 ${
+              darkMode
+                ? 'border-slate-700 bg-slate-800/70 text-slate-200 hover:bg-slate-700/70'
+                : 'border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }`}
           >
             <ChevronLeft size={16} />
             Previous
@@ -93,7 +105,7 @@ export function Flashcards({ flashcards }: Props) {
 
           <button
             onClick={() => setFlipped(!flipped)}
-            className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+            className="rounded-xl border border-blue-400/40 bg-blue-500/15 px-4 py-2 text-blue-300 transition-all duration-300 hover:-translate-y-0.5"
           >
             Flip Card
           </button>
@@ -101,7 +113,11 @@ export function Flashcards({ flashcards }: Props) {
           <button
             onClick={nextCard}
             disabled={flashcards.length <= 1}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`flex items-center gap-2 rounded-xl border px-4 py-2 transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50 ${
+              darkMode
+                ? 'border-slate-700 bg-slate-800/70 text-slate-200 hover:bg-slate-700/70'
+                : 'border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }`}
           >
             Next
             <ChevronRight size={16} />
